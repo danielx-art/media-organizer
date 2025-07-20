@@ -52,8 +52,8 @@ def organize_files(source_path, destination_path, what_if=False):
     accepted_extensions = image_extensions + video_extensions
 
     month_names = [
-        "01_Janeiro", "02_Fevereiro", "03_Marco", "04_Abril", "05_Maio", "06_Junho",
-        "07_Julho", "08_Agosto", "09_Setembro", "10_Outubro", "11_Novembro", "12_Dezembro"
+        "01", "02", "03", "04", "05", "06",
+        "07", "08", "09", "10", "11", "12"
     ]
 
     processed_count = 0
@@ -77,6 +77,8 @@ def organize_files(source_path, destination_path, what_if=False):
 
     print("\nStarting file organization...")
 
+    normalized_source_path = os.path.normpath(source_path)
+
     for root, _, files in os.walk(source_path):
         for filename in files:
             file_extension = os.path.splitext(filename)[1].lower()
@@ -93,6 +95,25 @@ def organize_files(source_path, destination_path, what_if=False):
                     print(f"  Warning: Could not determine date for {filename}. Skipping.")
                     error_count += 1
                     continue
+                
+                relative_folder_path = os.path.relpath(root, normalized_source_path)
+
+                if relative_folder_path == '.':
+                    folder_name_parts = []
+                else:
+                    folder_name_parts = relative_folder_path.split(os.sep)
+                cleaned_folder_names = []
+                for part in folder_name_parts:
+                    cleaned_part = part.replace(' ', '_').replace('.', '_').replace('-', '_')
+                    cleaned_part = ''.join(c for c in cleaned_part if c.isalnum() or c == '_') # Keep only alphanumeric and underscore
+                    if cleaned_part: # Ensure part is not empty after cleaning
+                        cleaned_folder_names.append(cleaned_part)
+
+                # Join them with underscores for the filename prefix
+                folder_name_prefix = ""
+                if cleaned_folder_names:
+                    folder_name_prefix = "_" + "_".join(cleaned_folder_names) # e.g., "_Family_Birthday"
+
 
                 year = determined_date.strftime("%Y")
                 month_num = determined_date.month # 1-12
@@ -104,7 +125,7 @@ def organize_files(source_path, destination_path, what_if=False):
 
                 # Prepare new filename with original basename
                 base_name = os.path.splitext(filename)[0]
-                new_filename_base = f"{formatted_date_for_file}_{base_name}"
+                new_filename_base = f"{formatted_date_for_file}{folder_name_prefix}_{base_name}"
                 new_filename = f"{new_filename_base}{file_extension}"
 
                 destination_file_path = os.path.join(month_folder_path, new_filename)
